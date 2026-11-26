@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calamityware wholesale pilot: stockist tracker (sample)</title>
+<style>
+:root{--bg:#f7f5ef;--card:#fff;--ink:#1f2933;--mute:#6b7280;--line:#e3dfd3;--accent:#1f4e79;--warn:#b45309;--warnbg:#fef3c7;--ok:#166534;--okbg:#dcfce7;--chip:#eef2f7;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--card:#1d232a;--ink:#e8ebef;--mute:#9aa4af;--line:#2b333c;--accent:#7fb2e5;--warn:#fbbf24;--warnbg:#3a2e0e;--ok:#86efac;--okbg:#12301c;--chip:#262e37;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181d;--card:#1d232a;--ink:#e8ebef;--mute:#9aa4af;--line:#2b333c;--accent:#7fb2e5;--warn:#fbbf24;--warnbg:#3a2e0e;--ok:#86efac;--okbg:#12301c;--chip:#262e37;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Georgia,"Times New Roman",serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.45rem;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 14px;font-size:.92rem}
+.banner{background:var(--warnbg);color:var(--warn);border-radius:8px;padding:8px 12px;font-size:.85rem;margin-bottom:16px;font-family:system-ui,sans-serif}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+.kpi b{display:block;font-size:1.7rem;line-height:1.1}
+.kpi span{color:var(--mute);font:.8rem system-ui,sans-serif}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:16px}
+h2{font-size:1rem;margin:0 0 10px}
+.funnel{display:grid;gap:6px}
+.row{display:grid;grid-template-columns:130px 1fr 34px;gap:8px;align-items:center;font:.85rem system-ui,sans-serif}
+.bar{height:14px;background:var(--chip);border-radius:7px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:7px}
+.filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+button{font:.8rem system-ui,sans-serif;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:999px;padding:5px 11px;cursor:pointer}
+button[aria-pressed="true"]{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font:.85rem system-ui,sans-serif;min-width:640px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-weight:600;cursor:pointer;white-space:nowrap}
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:.75rem;background:var(--chip)}
+.pill.stalled{background:var(--warnbg);color:var(--warn)}
+.pill.ok{background:var(--okbg);color:var(--ok)}
+.foot{color:var(--mute);font:.8rem system-ui,sans-serif;margin-top:14px}
+</style>
+</head>
+<body>
+<main>
+<h1>Calamityware wholesale pilot: stockist tracker</h1>
+<p class="sub">One view of every shop, where it is in the process, and who is waiting on whom.</p>
+<div class="banner">Sample with fictional shops and made-up numbers. The stages come from the public process on calamityware.com/pages/wholesale.</div>
+<section class="kpis" id="kpis" aria-label="Key numbers"></section>
+<section class="card"><h2>Pipeline by stage</h2><div class="funnel" id="funnel"></div></section>
+<section class="card">
+<h2>Shops</h2>
+<div class="filters" id="filters" role="group" aria-label="Filter by stage"></div>
+<div class="tw"><table><thead><tr>
+<th data-k="name">Shop</th><th data-k="city">Location</th><th data-k="type">Order type</th><th data-k="stage">Stage</th><th data-k="days">Days waiting</th><th>Next action</th>
+</tr></thead><tbody id="rows"></tbody></table></div>
+<p class="foot">“Waiting too long” flags use example thresholds (application 5 days, approval 3, signature 7, welcome email 2, first order 21). They would be tuned to how the team actually works.</p>
+</section>
+</main>
+<script>
+var STAGES=["Applied","Approved","Agreement sent","Signed","Catalog sent","First order"];
+var LIMIT=[5,3,7,2,21,Infinity];
+var NEXT=["Review application","Send Wholesale Agreement","Nudge for signature","Send welcome email with customer ID","Wait for first order, then check in","Active stockist"];
+var DATA=[
+["Moonlit Mercantile","Portland, OR","Single items (10+)",0,2],["Odd Duck Gifts","Asheville, NC","Master case",0,6],
+["The Curious Shelf","Madison, WI","Single items (10+)",0,1],["Teapot & Thistle","Burlington, VT","Master case",1,4],
+["Peculiar Goods Co.","Austin, TX","Single items (10+)",1,1],["Gnome Sweet Gnome","Duluth, MN","Master case",2,9],
+["Wobbly Table Home","Savannah, GA","Single items (10+)",2,3],["Paper Moth Boutique","Santa Fe, NM","Single items (10+)",3,3],
+["Brick & Whimsy","Pittsburgh, PA","Master case",3,1],["Corner Cabinet Curios","Columbus, OH","Master case",4,12],
+["Little Lantern Shop","Bend, OR","Single items (10+)",4,25],["Sundry & Sprocket","Providence, RI","Master case",5,0],
+["Fern & Feather Gifts","Boise, ID","Single items (10+)",5,0],["Quirk Street Mercantile","Nashville, TN","Master case",5,0]
+].map(function(r){return{name:r[0],city:r[1],type:r[2],stage:r[3],days:r[4]}});
+var filter=-1,sortK="stage",asc=true;
+function stalled(d){return d.days>LIMIT[d.stage]}
+function kpis(){
+ var n=DATA.length,st=DATA.filter(stalled).length,sg=DATA.filter(function(d){return d.stage>=3}).length,fo=DATA.filter(function(d){return d.stage===5}).length;
+ var items=[[n,"shops in the pipeline"],[st,"waiting too long"],[Math.round(sg/n*100)+"%","signed the agreement"],[fo,"placed a first order"]];
+ document.getElementById("kpis").innerHTML=items.map(function(i){return '<div class="kpi"><b>'+i[0]+'</b><span>'+i[1]+'</span></div>'}).join("");
+}
+function funnel(){
+ var n=DATA.length;
+ document.getElementById("funnel").innerHTML=STAGES.map(function(s,i){
+  var c=DATA.filter(function(d){return d.stage>=i}).length;
+  return '<div class="row"><span>'+s+'</span><div class="bar"><i style="width:'+(c/n*100)+'%"></i></div><b>'+c+'</b></div>';}).join("");
+}
+function filters(){
+ var el=document.getElementById("filters"),all=["All"].concat(STAGES);
+ el.innerHTML=all.map(function(s,i){return '<button data-f="'+(i-1)+'" aria-pressed="'+((i-1)===filter)+'">'+s+'</button>'}).join("");
+ Array.prototype.forEach.call(el.children,function(b){b.onclick=function(){filter=+b.getAttribute("data-f");filters();rows()}});
+}
+function rows(){
+ var list=DATA.filter(function(d){return filter<0||d.stage===filter});
+ list.sort(function(a,b){var x=a[sortK],y=b[sortK];return (x>y?1:x<y?-1:0)*(asc?1:-1)});
+ document.getElementById("rows").innerHTML=list.map(function(d){
+  var flag=stalled(d)?'<span class="pill stalled">Waiting too long</span>':(d.stage===5?'<span class="pill ok">Active</span>':'');
+  return '<tr><td>'+d.name+'</td><td>'+d.city+'</td><td>'+d.type+'</td><td><span class="pill">'+STAGES[d.stage]+'</span></td><td>'+d.days+' '+flag+'</td><td>'+NEXT[d.stage]+'</td></tr>';}).join("");
+}
+Array.prototype.forEach.call(document.querySelectorAll("th[data-k]"),function(th){th.onclick=function(){var k=th.getAttribute("data-k");asc=(sortK===k)?!asc:true;sortK=k;rows()}});
+kpis();funnel();filters();rows();
+</script>
+</body>
+</html>
